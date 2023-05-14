@@ -34,14 +34,26 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from "vue";
-import libs from "./libs";
-import createjs from "createjs-module";
+import createjs from "@nomadreservations/createjs-module";
 const AdobeAn = {};
-libs(window.createjs, AdobeAn);
-// libs(createjs, AdobeAn);
+window.createjs = createjs
+window.AdobeAn = AdobeAn
+
+function loadLibs (src, callback) {
+  return function () {
+    let script = document.createElement('script')
+    script.src = src
+    document.head.appendChild(script)
+    script.onload = function () {
+      script.remove()
+      script = null
+      callback()
+    }
+  }
+}
 
 var canvas = ref(null);
-onMounted(() => {
+onMounted(loadLibs('index.js', () => {
   var comp = AdobeAn.getComposition("EC3D2412327E9E4190E551576F60A1F2");
   var lib = comp.getLibrary();
   var loader = new createjs.LoadQueue(false);
@@ -66,12 +78,9 @@ onMounted(() => {
       images[evt.item.id] = evt.result;
     }
   });
-  loader.addEventListener("complete", function (evt) {
-    console.log(evt, comp, lib);
-    handleComplete(evt, comp);
-  });
+  loader.addEventListener("complete", handleComplete);
   loader.loadManifest(lib.properties.manifest);
-  function handleComplete(evt, comp) {
+  function handleComplete (evt) {
     var ss = comp.getSpriteSheet();
     var queue = evt.target;
     var ssMetadata = lib.ssMetadata;
@@ -81,53 +90,57 @@ onMounted(() => {
         frames: ssMetadata[i].frames,
       });
     }
-    let exportRoot = new lib.index();
     let stage = new lib.Stage(canvas.value);
-    // stage.enableMouseOver();
-    let fnStartAnimation = function () {
-      stage.addChild(asd());
-      stage.addChild(exportRoot);
-      // console.log(exportRoot);
-      // exportRoot.mcIndex.gotoAndPlay(1);
-      createjs.Ticker.framerate = lib.properties.fps;
-      createjs.Ticker.addEventListener("tick", stage);
-    };
-    // window.stage = stage;
-    // Code to support hidpi screens and responsive scaling.
-    // AdobeAn.makeResponsive(false, "both", false, 1, [
-    //   canvas.value,
-    //   document.getElementById("animation_container"),
-    //   document.getElementById("dom_overlay_container"),
-    // ]);
+    createjs.Ticker.framerate = lib.properties.fps;
+    createjs.Ticker.addEventListener("tick", stage);
     AdobeAn.compositionLoaded(lib.properties.id);
-    fnStartAnimation();
-  }
-});
+    let exportRoot = new lib.index();
+    stage.addChild(exportRoot);
+    exportRoot.mcMeizhongjiang.visible = false
+    exportRoot.mcZhongjiang.visible = false
+    exportRoot.mcIndex.btn.mouseChildren = false
+    exportRoot.mcIndex.btnGuize.mouseChildren = false
+    exportRoot.mcIndex.gotoAndPlay(1);
+    let chance = 2
+    exportRoot.addEventListener('click', (event) => {
+      const name = event.target.name
+      if (name === 'linghongbaoBtn') {
+        exportRoot.mcZhongjiang.visible = false
+        exportRoot.mcIndex.gotoAndPlay(1);
+      } else if (name === '再摇一次btn') {
+        exportRoot.mcMeizhongjiang.visible = false
+        exportRoot.mcIndex.gotoAndPlay(1);
+      }
+    })
 
-function asd() {
-  let container = new createjs.Container().set({
-    x: 100,
-    y: 100,
-  });
-  for (let i = 0; i < 4; i++) {
-    let rect = new createjs.Shape().set({
-      x: 100 * i,
-      y: 100 * i,
-    });
-    rect.fillCommand = rect.graphics.beginFill("red").command;
-    rect.graphics.rect(0, 0, 100, 100);
-    container.addChild(rect);
+    exportRoot.mcIndex.addEventListener('click', (event) => {
+      const name = event.target.name
+      if (name === 'btnGuize') {
+        exportRoot.mcGuize.gotoAndPlay(1);
+      } else if (name === 'btn') {
+        const mc = Math.random() > 0.5 ? 'mcZhongjiang' : 'mcMeizhongjiang'
+        exportRoot[mc].visible = true
+        exportRoot[mc].gotoAndPlay(1)
+        if (mc === 'mcMeizhongjiang') {
+          chance--
+          if (chance === 0) {
+            exportRoot[mc].duoyaoyici.gotoAndStop(1)
+          }
+        }
+      }
+    })
+    exportRoot.mcGuize.addEventListener('click', event => {
+      const name = event.target.name
+      if (name === 'jiangpingBtn') {
+        exportRoot.mcGuize.expData.gotoAndStop(1)
+      } else if (name === 'shuomingBtn') {
+        exportRoot.mcGuize.expData.gotoAndStop(0)
+      } else if (name === 'closeBtn') {
+        exportRoot.mcGuize.gotoAndPlay('out')
+      }
+    })
   }
-  // stage.addChild(container);
-  // stage.enableMouseOver(10);
-  // container.on("mouseover", (e) => {
-  //   e.target.fillCommand.style = "blue";
-  // });
-  // container.on("mouseout", (e) => {
-  //   e.target.fillCommand.style = "red";
-  // });
-  return container;
-}
+}));
 
 onBeforeUnmount(() => createjs.Ticker.removeAllEventListeners());
 </script>

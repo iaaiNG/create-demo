@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import createjs from "createjs-module";
+import createjs from "@nomadreservations/createjs-module";
 import { onMounted, ref } from "vue";
 
 function loadImage(src, callback) {
@@ -18,7 +18,7 @@ const canvas = ref(null);
 onMounted(() => {
   const stage = new createjs.Stage(canvas.value);
   createjs.Ticker.framerate = 30;
-  createjs.Ticker.timingMode = createjs.Ticker.RAF;
+  createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
   createjs.Ticker.addEventListener("tick", stage);
 
   // //还有遮罩，就是溢出隐藏那种效果。
